@@ -78,12 +78,24 @@ SMA_PERIOD = 9
 # ============================================================
 def main() -> None:
     """
-    Startup sequence
-    ─────────────────
-    1. Load access token
-    2. Fetch today's historical candles
-    3. Initialize RSI state from historical data  (TA-Lib used once here)
-    4. Start WebSocket → incremental RSI from this point forward
+    Program Startup Flow
+    --------------------
+
+    Access Token
+        ↓
+    Historical Data Fetch
+        ↓
+    TA-Lib RSI Initialization
+        ↓
+    Rolling RSI State Creation
+        ↓
+    WebSocket Connection
+        ↓
+    Live Tick Stream
+        ↓
+    Incremental RSI Updates
+        ↓
+    Trading Engine
     """
 
     # ── 1. Access token ───────────────────────────────────────
