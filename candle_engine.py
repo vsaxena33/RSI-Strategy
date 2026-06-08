@@ -1,3 +1,12 @@
+"""
+================================================================================
+REAL-TIME OHLCV CANDLE BUILDER ENGINE
+================================================================================
+
+Handles incoming tick data, aggregates them into timeframe-bound candles, 
+and computes rolling real-time technical indicators (RSI, EMA, SMA) in O(1).
+"""
+
 # ============================================================
 # Import
 # ============================================================
