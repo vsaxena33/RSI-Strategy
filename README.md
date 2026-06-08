@@ -120,17 +120,35 @@ pip install fyers-apiv3 pandas numpy TA-Lib pytz
 
 2. **Create `credentials.py`** in the project root:
 
+   Add your FYERS API credentials inside:
+        
    ```python
-   client_id = "YOUR_FYERS_APP_ID"
+   credentials.py
+   ```
+        
+   Example:
+        
+   ```python
+   CLIENT_ID = "YOUR_CLIENT_ID"
+   SECRET_KEY = "YOUR_SECRET_KEY"
+   REDIRECT_URI = "YOUR_REDIRECT_URI"
    ```
 
 3. **Generate an access token** using the Fyers API auth flow and save it:
-
+        
+   Generate the access token using:
+        
+   ```bash
+   python autoLogin.py
+   ```
+        
+   > Note: Due to SEBI guidelines, a new access token must be generated daily.
+   
    ```bash
    echo "YOUR_ACCESS_TOKEN" > access_token.txt
    ```
 
-4. **Configure the symbol and parameters** in `main.py`:
+5. **Configure the symbol and parameters** in `main.py`:
 
    ```python
    symbol     = 'NSE:RELIANCE-EQ'
