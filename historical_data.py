@@ -28,6 +28,17 @@ resolution = "1"
 def fetch_historical_data(fyers: fyersModel.FyersModel) -> pd.DataFrame:
     """
     Fetch intraday OHLCV candles from market open to now.
+
+    Parameters
+    ----------
+    fyers      : Authenticated FyersModel instance.
+    symbol     : Fyers symbol string (e.g. 'NSE:RELIANCE-EQ').
+    resolution : Candle timeframe in minutes as a string (default '1').
+
+    Returns
+    -------
+    pd.DataFrame
+        OHLCV DataFrame indexed by timezone-aware timestamps.
     """
     now          = dt.datetime.now(pytz.timezone(timeZone))
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
