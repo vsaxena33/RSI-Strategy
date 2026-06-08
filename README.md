@@ -30,6 +30,7 @@ Risk management uses a **1:2 risk-to-reward** ratio with a trailing stop that ad
 ├── rolling_MA.py        # Rolling EMA and SMA (O(1) incremental updates)
 ├── historical_data.py   # Historical OHLCV data fetching from Fyers API
 ├── log_trade.py         # CSV trade execution logger
+├── autoLogin.py         # Get access token
 └── credentials.py       # client_id (not committed — see Setup)
 ```
 
