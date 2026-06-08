@@ -130,7 +130,7 @@ def update_live_data(
             # For SMA mid-candle: slide against the base snapshot taken at candle open
             # We reuse the same oldest_close that was used when this candle was created.
             # The simplest correct approach: recompute from prev_sma + (ltp - oldest_close)/length
-            # oldest_close is at position -(SMA_PERIOD) relative to the last CLOSED candle (iloc[-2])
+            # oldest_close is at position -(SMA_PERIOD + 1) relative to the last CLOSED candle (iloc[-2])
             if pd.notna(prev_sma_9) and len(data) > SMA_PERIOD:
                 oldest_close = data['close'].iloc[-(SMA_PERIOD + 1)]  # drops out of window for this candle
                 data.iloc[-1, COL_SMA9] = prev_sma_9 + (ltp - oldest_close) / SMA_PERIOD
