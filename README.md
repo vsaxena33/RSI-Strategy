@@ -113,8 +113,8 @@ pip install fyers-apiv3 pandas numpy TA-Lib pytz
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/rsi-trading-engine.git
-   cd rsi-trading-engine
+   git clone https://github.com/vsaxena33/RSI-Strategy.git
+   cd RSI-Strategy
    ```
 
 2. **Create `credentials.py`** in the project root:
