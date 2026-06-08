@@ -1,3 +1,57 @@
+"""
+================================================================================
+ROLLING RSI ENGINE
+================================================================================
+
+This module implements a production-grade rolling Relative Strength Index (RSI)
+using Wilder's smoothing method.
+
+Unlike traditional implementations that recalculate RSI across the entire price
+history whenever a new candle arrives, this implementation maintains a compact
+state object and updates RSI incrementally in O(1) time.
+
+Design Philosophy
+-----------------
+The engine separates RSI state into two layers:
+
+1. Committed State
+   Represents the last fully closed candle.
+
+2. Temporary State
+   Represents the currently forming candle.
+
+This architecture allows thousands of live tick updates to be processed
+without mutating committed RSI values until the candle is finalized.
+
+Benefits
+--------
+* O(1) update complexity
+* O(1) memory growth
+* No historical rescans
+* No TA-Lib calls after initialization
+* Suitable for real-time algorithmic trading systems
+
+Workflow
+--------
+Historical Candles
+        ↓
+TA-Lib Initialization
+        ↓
+Wilder State Recovery
+        ↓
+Live Tick Updates
+        ↓
+Temporary RSI Calculation
+        ↓
+Candle Close
+        ↓
+State Commitment
+
+Author: Vaibhav Saxena
+================================================================================
+"""
+
+
 # ============================================================
 # Import
 # ============================================================
@@ -17,15 +71,36 @@ RSI_PERIOD = 28      # Standard Wilder period; change freely
 @dataclass
 class RSIState:
     """
-    Stores all state required for O(1) incremental RSI updates.
+    Stores all state required for rolling RSI calculations.
 
-    Committed fields  → reflect the last fully CLOSED candle.
-    Temporary fields  → reflect the currently forming (open) candle.
+    Attributes
+    ----------
+    period : int
+        RSI lookback period.
 
-    Only committed fields participate in Wilder smoothing.
-    Temporary fields are recomputed from scratch each tick using
-    committed avg_gain / avg_loss as the base — so committed state
-    is never mutated until a candle actually closes.
+    committed_avg_gain : float
+        Wilder-smoothed average gain from the most recently
+        closed candle.
+
+    committed_avg_loss : float
+        Wilder-smoothed average loss from the most recently
+        closed candle.
+
+    committed_close : float
+        Closing price of the most recently closed candle.
+
+    current_rsi : float
+        RSI value currently displayed on the chart.
+
+    current_avg_gain : float
+        Temporary average gain derived from the live candle.
+
+    current_avg_loss : float
+        Temporary average loss derived from the live candle.
+
+    is_ready : bool
+        Indicates whether sufficient historical data exists
+        to calculate RSI.
     """
 
     period: int = RSI_PERIOD
@@ -75,12 +150,15 @@ def _wilder_smooth(prev_avg: float, new_value: float, period: int) -> float:
 # ============================================================
 def _compute_rsi(avg_gain: float, avg_loss: float) -> float:
     """
-    Convert Wilder-smoothed gain and loss averages into an RSI value.
+    Relative Strength (RS)
+    RS = AvgGain / AvgLoss
+    RSI converts RS into a bounded oscillator:
+    RSI = 100 - 100 / (1 + RS)
 
     Edge cases:
-      avg_loss == 0 and avg_gain >  0  →  pure uptrend  →  RSI = 100
+      avg_loss == 0 and avg_gain >  0  →  pure uptrend  →  RSI = 100 (extremely bullish)
       avg_loss == 0 and avg_gain == 0  →  flat market   →  RSI = 50  (neutral)
-      avg_gain == 0 and avg_loss >  0  →  pure downtrend→  RSI = 0
+      avg_gain == 0 and avg_loss >  0  →  pure downtrend→  RSI = 0   (extremely bearish)
 
     Parameters
     ----------
@@ -241,6 +319,27 @@ def update_rsi(
         return np.nan
 
     # ── Compute gain/loss relative to last committed close ────
+    # IMPORTANT:
+    #
+    # RSI is always calculated relative to the last CLOSED candle.
+    #
+    # Example:
+    #
+    # Closed Candle Close = 100
+    #
+    # Tick 1 -> 101
+    # Tick 2 -> 102
+    # Tick 3 -> 99
+    #
+    # Each tick recomputes RSI from the same committed state:
+    #
+    # committed_avg_gain
+    # committed_avg_loss
+    # committed_close
+    #
+    # This prevents cumulative distortion during candle formation
+    # and guarantees that only the final candle close affects
+    # committed RSI values.
     change = current_close - state.committed_close
     gain   = max(change,  0.0)
     loss   = max(-change, 0.0)
@@ -257,6 +356,13 @@ def update_rsi(
     state.current_avg_loss = temp_avg_loss
     state.current_rsi      = temp_rsi
 
+    # Once the candle closes, temporary values become permanent.
+    #
+    # At this point the live candle becomes part of market history,
+    # so its gain/loss contribution must be incorporated into the
+    # committed Wilder averages.
+    #
+    # This happens exactly once per candle.
     if candle_closed:
         # ── Promote temporary → committed ─────────────────────
         # This happens exactly ONCE per closed candle, not per tick.
