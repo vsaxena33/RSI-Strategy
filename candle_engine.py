@@ -78,6 +78,24 @@ def update_live_data(
         incremental_vol = max(total_vol - last_total_volume, 0)
 
     # ── UPDATE existing candle ────────────────────────────────
+    # We are still inside the currently forming candle.
+    #
+    # Example:
+    #
+    # 10:15:01 -> Price = 100
+    # 10:15:05 -> Price = 101
+    # 10:15:10 -> Price = 99
+    #
+    # The candle is NOT closed yet.
+    #
+    # Therefore:
+    #
+    # • Update OHLCV
+    # • Update temporary RSI
+    # • Do NOT commit Wilder state
+    #
+    # This branch may execute thousands of times before
+    # the candle closes.
     if len(data) > 0 and data.index[-1] == timestamp:
         data.iloc[-1, COL_CLOSE]   = ltp
         data.iloc[-1, COL_HIGH]    = max(data.iloc[-1, COL_HIGH], ltp)
@@ -110,9 +128,19 @@ def update_live_data(
             else:
                 data.iloc[-1, COL_SMA9] = np.nan
 
+    # ── CLOSE previous candle and CREATE new one ──────────
+    # The previous candle has now closed.
+    #
+    # Steps:
+    #
+    # 1. Commit previous candle RSI contribution.
+    # 2. Advance Wilder averages.
+    # 3. Create new candle.
+    # 4. Derive temporary RSI for the new candle.
+    #
+    # From this point forward, the new candle becomes the
+    # active live candle receiving tick updates.
     else:
-        # ── CLOSE previous candle and CREATE new one ──────────
-        #
         # If there was a previous live candle, commit its RSI state.
         # We use the previous candle's close as the "candle closed" price.
         if len(data) > 0:
@@ -130,7 +158,7 @@ def update_live_data(
         new_ema_9 = rolling_MA.rolling_ema(ltp, prev_ema_9, EMA_PERIOD) if pd.notna(prev_ema_9) else np.nan
  
         # rolling_sma needs the pre-append DataFrame and at least SMA_PERIOD+1 candles
-        if pd.notna(prev_sma_9) and len(data) >= SMA_PERIOD:
+        if pd.notna(prev_sma_9) and len(data) >= SMA_PERIOD + 1:
             new_sma_9 = rolling_MA.rolling_sma(data, ltp, SMA_PERIOD)
         else:
             new_sma_9 = np.nan
