@@ -1,3 +1,12 @@
+"""
+================================================================================
+HISTORICAL DATA SEEDING UTILITIES
+================================================================================
+
+Handles initialization pipeline querying, fetching structural backlogs from
+Fyers Intraday API servers for data priming.
+"""
+
 # ============================================================
 # Import
 # ============================================================
