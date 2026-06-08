@@ -19,10 +19,21 @@ symbol     = 'NSE:RELIANCE-EQ'
 # ============================================================
 class Candlestick:
     """
-    Real-time market data manager.
+    Candlestick acts as the central coordinator of the trading engine.
 
-    Owns the live OHLCV DataFrame and the RSIState.
-    Receives WebSocket callbacks and delegates to update_live_data().
+    Responsibilities
+    ----------------
+    1. Receive WebSocket ticks.
+    2. Update OHLCV candles.
+    3. Maintain rolling indicators.
+    4. Manage trading state.
+    5. Execute strategy logic.
+    6. Log trades.
+
+    The class itself does not calculate RSI.
+
+    Indicator calculations are delegated to dedicated modules,
+    allowing indicators to be developed and tested independently.
     """
 
     def __init__(self, data: pd.DataFrame, fyers: fyersModel.FyersModel, rsi_state: RSIState):
@@ -105,8 +116,8 @@ class Candlestick:
         self.last_evaluated_candle = closed_candle_time
 
         rsi       = self.data['rsi'].iloc[-2]
-        ema       = self.data['ema'].iloc[-2]
-        sma       = self.data['sma'].iloc[-2]
+        ema       = self.data['ema_9'].iloc[-2]
+        sma       = self.data['sma_9'].iloc[-2]
 
         # ✅ Skip signal logic entirely if EMAs aren't ready yet
         if any(pd.isna(v) for v in [rsi, ema, sma]):
